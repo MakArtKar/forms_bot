@@ -4,9 +4,10 @@ import os
 import time
 from SQLighter import *
 
+
 base = SQLighter()
 bot = telebot.TeleBot(config.token)
-    
+
 # @bot.message_handler(commands=['test'])
 # def find_file_ids(message):
 #     #for file in os.listdir('music/'):
@@ -25,10 +26,20 @@ bot = telebot.TeleBot(config.token)
 @bot.message_handler(commands=['new_form'])
 def makeForm(message):
 	chat_id = message.chat.id
-	base.addUser(chat_id)
-	form_id = chat_id + 
+	user = base.getUser(chat_id)
+	if user.state != 0:
+		bot.send_message(chat_id, 'Пожалуйста, закончите предыдущую форму')
+		pass
+
+	form = base.addForm(chat_id + '_' + user.forms_number)
+	user = base.updateUser
+	base.updateState()
+
+@bot.message_handler(commands=['new_question'])
+def makeQuestion(message):
 
 
 if __name__ == '__main__':
     bot.infinity_polling()
  
+
