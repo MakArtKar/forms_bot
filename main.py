@@ -4,7 +4,7 @@ import config
 
 bot = telebot.TeleBot(config.token)
 
-@bot.message_handler(content_types=['test'])
+@bot.message_handler(commands=['test'])
 def find_file_ids(message):
     for file in os.listdir('music/'):
     	if file.split('.')[-1] == 'ogg':
