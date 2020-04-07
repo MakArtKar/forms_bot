@@ -1,6 +1,6 @@
 import telebot
 import config
-
+import os
 
 bot = telebot.TeleBot(config.token)
 
