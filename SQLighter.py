@@ -28,7 +28,7 @@ class SQLighter:
 
 	def getForm(self, form_id):
 
-	def getQuestion(self, question_id):
+	def getQuestion(self, form_id, question_id):
 		return Question()
 
 	def getAnswers(self, form_id):
