@@ -27,6 +27,7 @@ class SQLighter:
 		return User()
 
 	def getForm(self, form_id):
+		return Form()
 
 	def getQuestion(self, form_id, question_id):
 		return Question()
