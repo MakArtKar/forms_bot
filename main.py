@@ -2,9 +2,9 @@ import telebot
 import config
 import os
 import time
-from db_worker import SQLighter()
+from db_worker import SQLighter
 
-base = SQLighter()
+base = SQLighter(config.db_path)
 bot = telebot.TeleBot(config.token)
 
 # @bot.message_handler(commands=['test'])
