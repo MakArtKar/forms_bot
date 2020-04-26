@@ -33,7 +33,7 @@ def make_form(message):
 
 	bot.send_message(chat_id, 'TODO инструкция по созданию формы')
 	
-	form_id = chat_id + '_' + str(user.forms_number)
+	form_id = str(chat_id) + '_' + str(user.forms_number)
 	user.state = 1
 	user.current_form = form_id
 	user.current_question = 0
