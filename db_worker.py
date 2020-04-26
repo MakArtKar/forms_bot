@@ -63,7 +63,7 @@ class SQLighter:
 
 	def update_user(self, user):
 		self.delete_user(user.chat_id)
-		self.connection.commit()
+		self.insert_user(user)
 
 	def insert_message_to_question(self, form_id, question_id, message_id):
 		self.cursor.execute("INSERT INTO Questions(form_id, question_id, message_id, inserted_time) VALUES(?, ?, ?, ?)", (form_id, question_id, message_id, datetime.now()))

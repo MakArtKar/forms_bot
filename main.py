@@ -2,7 +2,7 @@ import telebot
 import config
 import os
 import time
-from SQLighter import *
+from db_worker import SQLighter()
 
 base = SQLighter()
 bot = telebot.TeleBot(config.token)
@@ -55,7 +55,7 @@ def make_question(message):
 @bot.message_handler(commands=['end_form'])
 def endForm(message):
 	chat_id = message.chat.id
-	user = base.getUser(chat_id)
+	user = base.get_user(chat_id)
 	if user.state != 1:
 		bot.send_message(chat_id, 'TODO создайте сначала форму/закончите проходить опрос')
 		return
@@ -70,7 +70,7 @@ def endForm(message):
 @bot.message_handler(content=['text'])
 def answer(message):
 	chat_id = message.chat.id
-	user = base.getUser(chat_id)
+	user = base.get_user(chat_id)
 	if user.state == 1:
 		form_id = user.current_form
 		question_id = user.current_question
