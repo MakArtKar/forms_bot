@@ -4,8 +4,6 @@ import os
 import time
 from SQLighter import *
 
-how_to_create_form = 'TODO написать инструкцию у созданию формы'
-
 base = SQLighter()
 bot = telebot.TeleBot(config.token)
 
@@ -26,37 +24,32 @@ bot = telebot.TeleBot(config.token)
 
 
 @bot.message_handler(commands=['new_form'])
-def makeForm(message):
+def make_form(message):
 	chat_id = message.chat.id
-	user = base.getUser(chat_id)
+	user = base.get_user(chat_id)
 	if user.state != 0:
 		bot.send_message(chat_id, 'TODO Пожалуйста, закончите предыдущую форму')
-		pass
+		return
 
-	form_id = chat_id + '_' + str(user.forms_number)
-	form = base.getForm(form_id)
-	bot.send_message(chat_id, how_to_create_form)
+	bot.send_message(chat_id, 'TODO инструкция по созданию формы')
 	
-	user.updateState(1)
-	user.updateCurrentForm(form_id)
+	form_id = chat_id + '_' + str(user.forms_number)
+	user.state = 1
+	user.current_form = form_id
+	user.current_question = 0
+	base.update_user(user)
 
 
 @bot.message_handler(commands=['new_question'])
-def makeQuestion(message):
+def make_question(message):
 	chat_id = message.chat.id
-	user = base.getUser(chat_id)
+	user = base.get_user(chat_id)
 	if user.state != 1:
 		bot.send_message(chat_id, 'TODO создайте сначала форму/закончите опрос')
-		pass
+		return
 
-	form_id = user.current_form
-	form = base.getForm(form_id)
-
-	question_id = form.questions_number
-	question = getQuestion(form_id, question_id)
-
-	form.updateQuestionsNumber()
-	user.updateCurrentQuestion(question_id)
+	user.current_question += 1
+	base.update_user(user)
 
 
 @bot.message_handler(commands=['end_form'])
@@ -64,23 +57,14 @@ def endForm(message):
 	chat_id = message.chat.id
 	user = base.getUser(chat_id)
 	if user.state != 1:
-		bot.send_message(chat_id, 'TODO создайте сначала форму/закончите опрос')
-		pass
+		bot.send_message(chat_id, 'TODO создайте сначала форму/закончите проходить опрос')
+		return
 
-	form_id = user.current_form
-	form = base.getForm(form_id)
-
-	user.updateState(0)
-	user.updateCurrentForm(None)
-	user.updateCurrentQuestion(None)
-	user.updateFormsNumber()
-
-
-def addMessageToQuestion(user, message_id):
-	form_id = user.current_form
-	question_id = user.current_question
-	question = base.getQuestion(form_id, question_id)
-	question.updateMessageIds(message_id)
+	user.state = 0
+	user.current_form = None
+	user.current_question = None
+	user.forms_number += 1
+	base.update_user(user)
 
 
 @bot.message_handler(content=['text'])
@@ -88,10 +72,9 @@ def answer(message):
 	chat_id = message.chat.id
 	user = base.getUser(chat_id)
 	if user.state == 1:
-		if user.question_id != None:
-			addMessageToQuestion(user, message.id)
-		else:
-			bot.send_message(chat_id, 'TODO сначала начните вопрос - /newquestion')
+		form_id = user.current_form
+		question_id = user.current_question
+		base.insert_message_to_question(form_id, question_id, message_id)
 
 
 if __name__ == '__main__':
