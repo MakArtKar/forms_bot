@@ -94,7 +94,7 @@ class SQLighter:
 
     def insert_answer(self, chat_id, form_id, question_id, answer_text):
         self.open_connection()
-        self.cursor.execute("INSERT INTO Answers(chat_id, form_id, question_id, answer_text) VALUES(?, ?, ?, ?)", (chat_id, form_id, question_id, answer_text))
+        self.cursor.execute("INSERT INTO Answers(chat_id, form_id, question_id, answer_text) VALUES(?, ?, ?, ?)", (chat_id, form_id, question_id, answer_text,))
         self.connection.commit()
         self.connection.close()
 

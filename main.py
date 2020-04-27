@@ -55,7 +55,7 @@ def make_question(message):
 
 @bot.message_handler(commands=['end_form'])
 def endForm(message):
-	chat_id = message.chat.i
+	chat_id = message.chat.id
 	user = base.get_user(chat_id)
 	if user.state != 1:
 		bot.send_message(chat_id, 'TODO создайте сначала форму/закончите проходить опрос')
@@ -73,7 +73,7 @@ def endForm(message):
 @bot.message_handler(commands=['answer_form'])
 def answer_form(message):
 	chat_id = message.chat.id
-	user = base.get_user(chat_id)
+	user = base.get_user(chat_id)	
 	if user.state != 0:
 		bot.send_message(chat_id, 'TODO закончите создание/ответы на другую форму')
 		return
@@ -82,6 +82,19 @@ def answer_form(message):
 	user.state = 2
 	base.update_user(user)
 
+def send_question(user):
+	form_id = user.current_form
+	question_id = user.current_question
+	creator_chat_id = int(form_id.split('_')[0])
+	messages_id = base.get_messages_id_from_question(form_id, question_id)
+	if not messages_id:
+		user.current_form = None
+		user.current_question = None
+		user.state = 0
+		bot.send_message(user.chat_id, 'TODO спасибо, опрос закончен')
+		return
+	for message_id in messages_id:
+		bot.forward_message(user.chat_id, creator_chat_id, message_id)
 
 @bot.message_handler(content_types=['text'])
 def answer(message):
@@ -95,22 +108,30 @@ def answer(message):
 		if user.current_form == None:
 			try:
 				form_id = str(message.text)
-				print(form_id)
 				args = form_id.split('_')
 				assert len(args) == 2
-				print(args)
 				creator_chat_id, form_number_id = int(args[0]), int(args[1])
 				creator_user = base.get_user(creator_chat_id, insert_if_not_exists=False)
 				assert creator_user != None and 0 <= form_number_id and form_number_id < creator_user.forms_number
-				messages_id = base.get_messages_id_from_question(form_id, 0)
-				print(messages_id)
-				for message_id in messages_id:
-					bot.forward_message(chat_id, creator_chat_id, message_id)
-				user.current_form = form_id
-				user.current_question = 0
-
 			except:
 				bot.send_message(chat_id, 'TODO неверный индефикатор')
+				return
+			user.current_form = form_id
+			user.current_question = 0
+			send_question(user)
+			base.update_user(user)
+		else:
+			form_id = user.current_form
+			question_id = user.current_question
+			try:
+				text = str(message.text)
+			except:
+				bot.send_message(chat_id, f'TODO неправильный формат ответа - введите текст')
+				return
+			base.insert_answer(chat_id, form_id, question_id, text)
+			user.current_question += 1
+			send_question(user)
+			base.update_user(user)
 
 
 if __name__ == '__main__':
