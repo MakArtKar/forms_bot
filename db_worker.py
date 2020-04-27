@@ -57,15 +57,18 @@ class SQLighter:
         self.connection.commit()
         self.connection.close()
 
-    def get_user(self, chat_id):
+    def get_user(self, chat_id, insert_if_not_exists=True):
         self.open_connection()
         users_by_chat_id = self.cursor.execute("SELECT chat_id, state, current_form, current_question, forms_number FROM Users WHERE chat_id = ?", (chat_id,)).fetchall()
         self.connection.close()
 
         if not users_by_chat_id:
-            user = User(chat_id=chat_id)
-            self.insert_user(user)
-            return user
+            if insert_if_not_exists:
+                user = User(chat_id=chat_id)
+                self.insert_user(user)
+                return user
+            else:
+                return None
         else:
             if len(users_by_chat_id) > 1:
                 logging.error("More than one user with one chat_id in database")
@@ -83,9 +86,9 @@ class SQLighter:
         self.connection.commit()
         self.connection.close()
 
-    def get_messages_from_question(self, form_id, question_id):
+    def get_messages_id_from_question(self, form_id, question_id):
         self.open_connection()
-        messages = self.cursor.execute("SELECT message_id FROM QMessages WHERE form_id=? and question_id=? ORDER BY inserted_time", (form_id, question_id))
+        messages = [int(x[0]) for x in self.cursor.execute("SELECT message_id FROM QMessages WHERE form_id=? and question_id=? ORDER BY inserted_time", (form_id, question_id)).fetchall()]
         self.connection.close()
         return messages
 
