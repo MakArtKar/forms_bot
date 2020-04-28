@@ -100,6 +100,15 @@ class SQLighter:
 
     def get_all_answers(self, form_id):
         self.open_connection()
-        answers = self.cursor.execute("SELECT chat_id, question_id, answer_text FROM Answers WHERE form_id=?", (form_id,)).fetchall()
+        temp = self.cursor.execute("SELECT chat_id, question_id, answer_text FROM Answers WHERE form_id=?", (form_id,)).fetchall()
+        length = 0
+        for x in temp:
+            length = max(length, x[1] + 1)
+
+        answers = []
+        for x in temp:
+            if x[1] == 0:
+                answers.append([])
+            answers[len(answers) - 1].append(x[2])
         self.connection.close()
         return answers

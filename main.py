@@ -3,25 +3,20 @@ import config
 import os
 import time
 from db_worker import SQLighter
+from import_to_google_sheets import post_in_sheets
 
 base = SQLighter(config.db_path)
 bot = telebot.TeleBot(config.token)
 
-# @bot.message_handler(commands=['test'])
-# def find_file_ids(message):
-#     #for file in os.listdir('music/'):
-#     #    if file.split('.')[-1] == 'ogg':
-#     #        f = open('music/'+file, 'rb')
-#     #        msg = bot.send_voice(message.chat.id, f, None)
-#     #        bot.send_message(message.chat.id, msg.message_id, reply_to_message_id=msg.message_id)
-#     #    time.sleep(3)
-#     bot.forward_message(message.chat.id, message.chat.id, 41)
-#     bot.forward_message(message.chat.id, message.chat.id, 43)
 
-# @bot.message_handler(content_types=['text'])
-# def find_file_ids(message):
-#     bot.send_message(message.chat.id, message.text)
+@bot.message_handler(commands=['test'])
+def test(message):
+	answers = base.get_all_answers('375622021_0')
+	post_in_sheets(answers, '1g5RCS_JUx3T9SprG87toHl1jesLEKa0YEsG_OxfFRN8')
 
+# @bot.message_handler(commands=['import'])
+# def import_to_google_sheets(message):
+# 	bot.send_message()
 
 @bot.message_handler(commands=['new_form'])
 def make_form(message):
