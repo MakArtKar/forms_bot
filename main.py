@@ -8,15 +8,23 @@ from import_to_google_sheets import post_in_sheets
 base = SQLighter(config.db_path)
 bot = telebot.TeleBot(config.token)
 
+@bot.message_handler(commands=['help'])
+def help(message):
+	chat_id = message.chat.id
+	bot.send_message(chat_id, 'TODO help')
 
-@bot.message_handler(commands=['test'])
-def test(message):
-	answers = base.get_all_answers('375622021_0')
-	post_in_sheets(answers, '1g5RCS_JUx3T9SprG87toHl1jesLEKa0YEsG_OxfFRN8')
-
-# @bot.message_handler(commands=['import'])
-# def import_to_google_sheets(message):
-# 	bot.send_message()
+@bot.message_handler(commands=['import'])
+def import_to_google_sheets(message):
+	chat_id = message.chat.id
+	try:
+		form_id = str(message.text.split(' ')[1])
+		spreadsheet_id = str(message.text.split(' ')[2])
+	except:
+		bot.send_message(chat_id, 'TODO Wrong format')
+		return
+	answers = base.get_all_answers(form_id)
+	post_in_sheets(answers, spreadsheet_id)
+	bot.send_message(chat_id, 'TODO OK')
 
 @bot.message_handler(commands=['new_form'])
 def make_form(message):
@@ -64,19 +72,6 @@ def endForm(message):
 	user.forms_number += 1
 	base.update_user(user)
 
-
-@bot.message_handler(commands=['answer_form'])
-def answer_form(message):
-	chat_id = message.chat.id
-	user = base.get_user(chat_id)
-	if user.state != 0:
-		bot.send_message(chat_id, 'TODO закончите создание/ответы на другую форму')
-		return
-
-	bot.send_message(chat_id, 'TODO введите индефикатор опроса')
-	user.state = 2
-	base.update_user(user)
-
 def send_question(user):
 	form_id = user.current_form
 	question_id = user.current_question
@@ -91,6 +86,30 @@ def send_question(user):
 	for message_id in messages_id:
 		bot.forward_message(user.chat_id, creator_chat_id, message_id)
 
+@bot.message_handler(commands=['answer_form'])
+def answer_form(message):
+	chat_id = message.chat.id
+	user = base.get_user(chat_id)
+	if user.state != 0:
+		bot.send_message(chat_id, 'TODO закончите создание/ответы на другую форму')
+		return
+	try:
+		form_id = str(message.text.split(' ')[1])
+		args = form_id.split('_')
+		assert len(args) == 2
+		creator_chat_id, form_number_id = int(args[0]), int(args[1])
+		creator_user = base.get_user(creator_chat_id, insert_if_not_exists=False)
+		assert creator_user != None and 0 <= form_number_id and form_number_id < creator_user.forms_number
+	except:
+		bot.send_message(chat_id, 'TODO неверный индефикатор')
+		return
+	user.current_form = form_id
+	user.current_question = 0
+	send_question(user)
+	base.update_user(user)
+	user.state = 2
+	base.update_user(user)
+
 @bot.message_handler(content_types=['text'])
 def answer(message):
 	chat_id = message.chat.id
@@ -100,33 +119,17 @@ def answer(message):
 		question_id = user.current_question
 		base.insert_message_to_question(form_id, question_id, message.message_id)
 	elif user.state == 2:
-		if user.current_form == None:
-			try:
-				form_id = str(message.text)
-				args = form_id.split('_')
-				assert len(args) == 2
-				creator_chat_id, form_number_id = int(args[0]), int(args[1])
-				creator_user = base.get_user(creator_chat_id, insert_if_not_exists=False)
-				assert creator_user != None and 0 <= form_number_id and form_number_id < creator_user.forms_number
-			except:
-				bot.send_message(chat_id, 'TODO неверный индефикатор')
-				return
-			user.current_form = form_id
-			user.current_question = 0
-			send_question(user)
-			base.update_user(user)
-		else:
-			form_id = user.current_form
-			question_id = user.current_question
-			try:
-				text = str(message.text)
-			except:
-				bot.send_message(chat_id, f'TODO неправильный формат ответа - введите текст')
-				return
-			base.insert_answer(chat_id, form_id, question_id, text)
-			user.current_question += 1
-			send_question(user)
-			base.update_user(user)
+		form_id = user.current_form
+		question_id = user.current_question
+		try:
+			text = str(message.text)
+		except:
+			bot.send_message(chat_id, f'TODO неправильный формат ответа - введите текст')
+			return
+		base.insert_answer(chat_id, form_id, question_id, text)
+		user.current_question += 1
+		send_question(user)
+		base.update_user(user)
 
 
 if __name__ == '__main__':
