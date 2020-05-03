@@ -98,6 +98,7 @@ class SQLighter:
         self.connection.commit()
         self.connection.close()
 
+    # Bad codestyle
     def get_all_answers(self, form_id):
         self.open_connection()
         temp = self.cursor.execute("SELECT chat_id, question_id, answer_text FROM Answers WHERE form_id=?", (form_id,)).fetchall()
