@@ -1,9 +1,9 @@
 import telebot
-import config/config
+import config
 import os
 import time
-from data/db_worker import SQLighter
-from google_sheets/import_to_google_sheets import post_in_sheets
+from db_worker import SQLighter
+from import_to_google_sheets import post_in_sheets
 
 base = SQLighter(config.db_path)
 bot = telebot.TeleBot(config.token)
