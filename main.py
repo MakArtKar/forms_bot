@@ -1,9 +1,9 @@
 import telebot
-import config
+import config/config
 import os
 import time
-from db_worker import SQLighter
-from import_to_google_sheets import post_in_sheets
+from data/db_worker import SQLighter
+from google_sheets/import_to_google_sheets import post_in_sheets
 
 base = SQLighter(config.db_path)
 bot = telebot.TeleBot(config.token)
@@ -68,7 +68,7 @@ def endForm(message):
 @bot.message_handler(commands=['answer_form'])
 def answer_form(message):
 	chat_id = message.chat.id
-	user = base.get_user(chat_id)	
+	user = base.get_user(chat_id)
 	if user.state != 0:
 		bot.send_message(chat_id, 'TODO закончите создание/ответы на другую форму')
 		return
