@@ -2,9 +2,11 @@ from datetime import datetime
 import logging
 import sqlite3
 
+import config
+
 class User:
     
-    def __init__(self, chat_id, state = 0, current_form = None, current_question = None, forms_number = 0):
+    def __init__(self, chat_id, state = config.States.DEFAULT.value, current_form = None, current_question = None, forms_number = 0):
         self.chat_id = chat_id
         self.state = state
         self.current_form = current_form
