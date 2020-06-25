@@ -14,15 +14,16 @@ class User:
 
 
 class Form:
-    def __init__(self, form_id, creator_chat_id=None, name=None, description=None, spreadsheet_id=None):
+    def __init__(self, form_id, creator_chat_id=None, questions_number=None, name=None, description=None, spreadsheet_id=None):
         self.form_id = form_id
         self.creator_chat_id = creator_chat_id
+        self.questions_number = questions_number
         self.name = name
         self.description = description
         self.spreadsheet_id = spreadsheet_id
 
 
-class SQLighter:
+class DataBase:
     def __init__(self, db_location=config.DB_LOCATION):
         self.__DB_LOCATION = db_location
         self.__db_connection = sqlite3.connect(self.__DB_LOCATION)
@@ -59,6 +60,7 @@ class SQLighter:
         self.__db_cursor.execute("""CREATE TABLE IF NOT EXISTS Forms(
             form_id TEXT NOT NULL UNIQUE,
             creator_chat_id INTEGER,
+            questions_number INTEGER,
             name TEXT,
             description TEXT,
             spreadsheet_id INTEGER
@@ -118,15 +120,25 @@ class SQLighter:
     
     def get_form(self, form_id):
         self.__insert_form_if_not_in_db(form_id)
-        self.__db_cursor.execute("SELECT creator_chat_id, name, description, spreadsheet_id FROM Forms WHERE form_id=?", (form_id,))
+        self.__db_cursor.execute("SELECT creator_chat_id, questions_number, name, description, spreadsheet_id FROM Forms WHERE form_id=?", (form_id,))
         items = self.__db_cursor.fetchall()
-        creator_chat_id, name, description, spreadsheet_id = items[0]
-        return Form(form_id=form_id, creator_chat_id=creator_chat_id, name=name, description=description, spreadsheet_id=spreadsheet_id)
+        creator_chat_id, questions_number, name, description, spreadsheet_id = items[0]
+        return Form(form_id=form_id, creator_chat_id=creator_chat_id, questions_number=questions_number, name=name, description=description, spreadsheet_id=spreadsheet_id)
 
     def update_form(self, form: Form):
         self.__insert_form_if_not_in_db(form.form_id)
-        self.__db_cursor.execute("UPDATE Forms SET creator_chat_id=?, name=?, description=?, spreadsheet_id=? WHERE form_id=?", (form.creator_chat_id, form.name, form.description, form.spreadsheet_id, form.form_id))
+        self.__db_cursor.execute("UPDATE Forms SET creator_chat_id=?, questions_number=?, name=?, description=?, spreadsheet_id=? WHERE form_id=?", (form.creator_chat_id, form.questions_number, form.name, form.description, form.spreadsheet_id, form.form_id))
         self.commit()
     
     def get_all_answers(self, form_id):
-        pass  # TODO: decide how to transfer data
+        self.__db_cursor.execute("SELECT chat_id, question_id, answer_text FROM Answers WHERE form_id=?", (form_id,))
+        items = self.__db_cursor.fetchall()
+        form = self.get_form(form_id)
+        assert type(form.questions_number) is int
+        result = dict()
+        for item in items:
+            chat_id, question_id, answer_text = item
+            if chat_id not in result:
+                result[chat_id] = [None] * form.questions_number
+            result[chat_id][question_id] = answer_text
+        return result 
