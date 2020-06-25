@@ -2,20 +2,22 @@ import telebot
 from telebot import types
 
 import config
-from db_worker import SQLighter
+from db_worker import DataBase, User, Form
 from import_to_google_sheets import post_in_sheets
 
-base = SQLighter(config.db_path)
-bot = telebot.TeleBot(config.token)
+base = DataBase(config.DB_LOCATION)
+bot = telebot.TeleBot(config.BOT_TOKEN)
 
 @bot.message_handler(commands=['start', 'help'])
 def menu(message):
 	chat_id = message.chat.id
+
 	keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
 	button_my_forms = types.KeyboardButton(text='/my_forms')
 	button_new_form = types.KeyboardButton(text='/new_form')
 	button_answer_form = types.KeyboardButton(text='/answer_form')
 	keyboard.add(button_my_forms, button_new_form, button_answer_form)
+	
 	bot.send_message(chat_id, text='Привет!', reply_markup=keyboard)
 
 @bot.message_handler(commands=['import'])
