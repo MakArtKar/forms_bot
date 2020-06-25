@@ -1,8 +1,8 @@
 import enum
 import os
 
-token = os.getenv("FORMS_BOT_TOKEN")
-db_path = os.getenv("FORMS_BOT_DATABASE")
+BOT_TOKEN = os.getenv("FORMS_BOT_TOKEN")
+DB_LOCATION = os.getenv("FORMS_BOT_DATABASE")
 
 class States(enum.Enum):
     DEFAULT = 0
