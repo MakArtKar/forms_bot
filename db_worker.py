@@ -97,10 +97,18 @@ class DataBase:
             messages_id.append(item[0])
         return messages_id
 
+    def delete_form_questions(self, form_id):
+        self.__db_cursor.execute("DELETE FROM QMessages WHERE form_id=?", (form_id,))
+        self.commit()
+
     def insert_answer(self, chat_id, form_id, question_id, answer_text):
         self.__db_cursor.execute("INSERT INTO Answers(chat_id, form_id, question_id, answer_text) VALUES(?, ?, ?, ?)", (chat_id, form_id, question_id, answer_text,))
         self.commit()
     
+    def delete_form_answers(self, form_id):
+        self.__db_cursor.execute("DELETE FROM Answers WHERE form_id=?", (form_id,))
+        self.commit()
+
     def get_user(self, chat_id):
         self.__insert_user_if_not_in_db(chat_id)
         self.__db_cursor.execute("SELECT state, current_form, current_question FROM Users WHERE chat_id=?", (chat_id,))
