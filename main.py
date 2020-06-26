@@ -203,13 +203,6 @@ def add_message_to_question(message):
 #   bot.send_message(chat_id, 'TODO OK')
 
 
-
-
-
-
-
-
-
 def get_user_state(chat_id):
     with DataBase() as base:
         return base.get_user(chat_id).state

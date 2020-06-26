@@ -6,6 +6,7 @@ DB_LOCATION = os.getenv("FORMS_BOT_DATABASE")
 FORM_ID_LEN = 12
 REF = 'https://t.me/google_forms_bot?start='
 
+
 class States(enum.Enum):
     DEFAULT = 0
     MAKING_QUESTION = 1
