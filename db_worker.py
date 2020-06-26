@@ -80,7 +80,8 @@ class DataBase:
         self.commit()
 
     def __insert_user_if_not_in_db(self, chat_id):
-        self.__db_cursor.execute("INSERT OR IGNORE INTO Users(chat_id) VALUES(?)", (chat_id,))
+        user = User(chat_id)
+        self.__db_cursor.execute("INSERT OR IGNORE INTO Users(chat_id, state, current_form, current_question) VALUES(?, ?, ?, ?)", (user.chat_id, user.state, user.current_form, user.current_question))
     
     def __insert_form_if_not_in_db(self, form_id):
         self.__db_cursor.execute("INSERT OR IGNORE INTO Forms(form_id) VALUES(?)", (form_id,))
@@ -103,8 +104,7 @@ class DataBase:
     
     def get_user(self, chat_id):
         self.__insert_user_if_not_in_db(chat_id)
-        self.__db_cursor.execute("SELECT state, current_form, current_question FROM Users WHERE chat_id=?", (chat_id,))
-        items = self.__db_cursor.fetchall()
+        items = self.__db_cursor.execute("SELECT state, current_form, current_question FROM Users WHERE chat_id=?", (chat_id,)).fetchall()
         state, current_form, current_question = items[0]
         return User(chat_id=chat_id, state=state, current_form=current_form, current_question=current_question)
 
@@ -120,8 +120,7 @@ class DataBase:
     
     def get_form(self, form_id):
         self.__insert_form_if_not_in_db(form_id)
-        self.__db_cursor.execute("SELECT creator_chat_id, questions_number, name, description, spreadsheet_id FROM Forms WHERE form_id=?", (form_id,))
-        items = self.__db_cursor.fetchall()
+        items = self.__db_cursor.execute("SELECT creator_chat_id, questions_number, name, description, spreadsheet_id FROM Forms WHERE form_id=?", (form_id,)).fetchall()
         creator_chat_id, questions_number, name, description, spreadsheet_id = items[0]
         return Form(form_id=form_id, creator_chat_id=creator_chat_id, questions_number=questions_number, name=name, description=description, spreadsheet_id=spreadsheet_id)
 
