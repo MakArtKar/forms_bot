@@ -1,4 +1,5 @@
 google-api-python-client
 httplib2
 pyTelegramBotAPI
+pytest
 oauth2client

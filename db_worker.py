@@ -79,11 +79,23 @@ class DataBase:
         )""")
         self.commit()
 
+    def clear_all_tables(self):
+        self.__db_cursor.execute("DELETE FROM Users")
+        self.__db_cursor.execute("DELETE FROM Forms")
+        self.__db_cursor.execute("DELETE FROM QMessages")
+        self.__db_cursor.execute("DELETE FROM Answers")
+        self.commit()
+
     def __insert_user_if_not_in_db(self, chat_id):
-        self.__db_cursor.execute("INSERT OR IGNORE INTO Users(chat_id) VALUES(?)", (chat_id,))
+        user = User(chat_id)
+        sql_query = "INSERT OR IGNORE INTO Users(chat_id, state, current_form, current_question) VALUES(?, ?, ?, ?)"
+        self.__db_cursor.execute(sql_query, (user.chat_id, user.state, user.current_form, user.current_question))
     
     def __insert_form_if_not_in_db(self, form_id):
-        self.__db_cursor.execute("INSERT OR IGNORE INTO Forms(form_id) VALUES(?)", (form_id,))
+        form = Form(form_id)
+        sql_query = "INSERT OR IGNORE INTO Forms(form_id, creator_chat_id, questions_number, name, description, spreadsheet_id) VALUES(?, ?, ?, ?, ?, ?)"
+        self.__db_cursor.execute(sql_query, (form.form_id, form.creator_chat_id, form.questions_number, form.name, form.description, form.spreadsheet_id))
+
 
     def insert_message_to_question(self, form_id, question_id, message_id):
         self.__db_cursor.execute("INSERT INTO QMessages(form_id, question_id, message_id, inserted_time) VALUES(?, ?, ?, ?)", (form_id, question_id, message_id, datetime.now()))
@@ -97,7 +109,7 @@ class DataBase:
             messages_id.append(item[0])
         return messages_id
 
-    def delete_form_questions(self, form_id):
+    def delete_questions_by_form_id(self, form_id):
         self.__db_cursor.execute("DELETE FROM QMessages WHERE form_id=?", (form_id,))
         self.commit()
 
@@ -105,7 +117,7 @@ class DataBase:
         self.__db_cursor.execute("INSERT INTO Answers(chat_id, form_id, question_id, answer_text) VALUES(?, ?, ?, ?)", (chat_id, form_id, question_id, answer_text,))
         self.commit()
     
-    def delete_form_answers(self, form_id):
+    def delete_answers_by_form_id(self, form_id):
         self.__db_cursor.execute("DELETE FROM Answers WHERE form_id=?", (form_id,))
         self.commit()
 
@@ -138,11 +150,25 @@ class DataBase:
         self.__db_cursor.execute("UPDATE Forms SET creator_chat_id=?, questions_number=?, name=?, description=?, spreadsheet_id=? WHERE form_id=?", (form.creator_chat_id, form.questions_number, form.name, form.description, form.spreadsheet_id, form.form_id))
         self.commit()
     
+    def get_user_forms(self, chat_id):
+        self.__db_cursor.execute("SELECT form_id FROM Forms WHERE creator_chat_id=?", (chat_id,))
+        items = self.__db_cursor.fetchall()
+        result = []
+        for item in items:
+            result.append(item[0])
+        return result
+
+    def delete_form(self, form_id):
+        self.delete_questions_by_form_id(form_id)
+        self.delete_answers_by_form_id(form_id)
+        self.__db_cursor.execute("DELETE FROM Forms WHERE form_id=?", (form_id,))
+        self.commit()
+
     def get_all_answers(self, form_id):
         self.__db_cursor.execute("SELECT chat_id, question_id, answer_text FROM Answers WHERE form_id=?", (form_id,))
         items = self.__db_cursor.fetchall()
         form = self.get_form(form_id)
-        assert type(form.questions_number) is int
+        assert form.questions_number is not None
         result = dict()
         for item in items:
             chat_id, question_id, answer_text = item
