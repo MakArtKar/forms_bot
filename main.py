@@ -189,18 +189,18 @@ def add_message_to_question(message):
         base.insert_message_to_question(form_id, question_id, message.message_id)
 
 
-# @bot.message_handler(commands=['import'])
-# def import_to_google_sheets(message):
-#   chat_id = message.chat.id
-#   try:
-#       form_id = str(message.text.split(' ')[1])
-#       spreadsheet_id = str(message.text.split(' ')[2])
-#   except:
-#       bot.send_message(chat_id, 'TODO Wrong format')
-#       return
-#   answers = base.get_all_answers(form_id)
-#   post_in_sheets(answers, spreadsheet_id)
-#   bot.send_message(chat_id, 'TODO OK')
+@bot.message_handler(commands=['import'])
+def import_to_google_sheets(message):
+  chat_id = message.chat.id
+  try:
+      form_id = str(message.text.split(' ')[1])
+      spreadsheet_id = str(message.text.split(' ')[2])
+  except:
+      bot.send_message(chat_id, 'TODO Wrong format')
+      return
+  answers = base.get_all_answers(form_id)
+  post_in_sheets(answers, spreadsheet_id)
+  bot.send_message(chat_id, 'TODO OK')
 
 
 def get_user_state(chat_id):
