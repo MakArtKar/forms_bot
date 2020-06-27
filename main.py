@@ -81,7 +81,7 @@ def menu(message):
     bot.send_message(chat_id, text='Выберите вариант', reply_markup=keyboard)
 
 
-@bot.message_handler(func=lambda message: message.text == 'Создать новую форму')
+@bot.message_handler(func=lambda message: message.text == 'Создать новую форму' and get_user_state(message.chat.id) == config.States.DEFAULT.value)
 def make_form(message):
     keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     button_default_name = types.KeyboardButton(text='Без названия')
@@ -90,9 +90,6 @@ def make_form(message):
     with DataBase() as base:
         chat_id = message.chat.id
         user = base.get_user(chat_id)
-        if user.state != config.States.DEFAULT.value:
-            bot.send_message(chat_id, 'TODO Пожалуйста, закончите предыдущую форму')
-            return
 
         bot.send_message(chat_id, 'Введите название формы', reply_markup=keyboard)
         
@@ -148,28 +145,22 @@ def form_description(message):
         base.update_user(user)
 
 
-@bot.message_handler(func=lambda message: message.text == 'Следующий вопрос')
+@bot.message_handler(func=lambda message: message.text == 'Следующий вопрос' and get_user_state(message.chat.id) == config.States.MAKING_QUESTION.value)
 def new_question(message):
     with DataBase() as base:
         chat_id = message.chat.id
         bot.send_message(chat_id, 'Введите следующий вопрос')
         user = base.get_user(chat_id)
-        if user.state != config.States.MAKING_QUESTION.value:
-            bot.send_message(chat_id, 'TODO создайте сначала форму/закончите опрос')
-            return
 
         user.current_question += 1
         base.update_user(user)
 
 
-@bot.message_handler(func=lambda message: message.text == 'Закончить форму')
+@bot.message_handler(func=lambda message: message.text == 'Закончить форму' and get_user_state(message.chat.id) == config.States.MAKING_QUESTION.value)
 def end_form(message):
     with DataBase() as base:
         chat_id = message.chat.id
         user = base.get_user(chat_id)
-        if user.state != config.States.MAKING_QUESTION.value:
-            bot.send_message(chat_id, 'TODO создайте сначала форму/закончите проходить опрос')
-            return
 
         bot.send_message(chat_id, f'Ссылка на ваш опрос {config.REF + user.current_form}')
 
