@@ -10,11 +10,12 @@ from import_to_google_sheets import post_in_sheets
 bot = telebot.TeleBot(config.BOT_TOKEN)
 
 
-def send_question(user):
-    form_id = user.current_form
-    question_id = user.current_question
-
+def send_question(message):
     with DataBase() as base:
+        user = base.get_user(message.chat.id)
+        form_id = user.current_form
+        question_id = user.current_question
+
         form = base.get_form(form_id)
         messages_id = base.get_messages_id_from_question(form_id, question_id)
         if not messages_id:
@@ -23,9 +24,11 @@ def send_question(user):
             user.state = config.States.DEFAULT.value
             bot.send_message(user.chat_id, 'TODO спасибо, опрос закончен')
             base.update_user(user)
+            menu(message)
         else:
             for message_id in messages_id:
                 bot.forward_message(user.chat_id, form.creator_chat_id, message_id)
+            base.update_user(user)
 
 
 @bot.message_handler(func=lambda message: message.text and len(message.text.split(' ')) == 2 and message.text.split(' ')[0] == '/start')
@@ -41,9 +44,9 @@ def answer_form(message):
         user.current_form = form_id
         user.current_question = 0
         user.state = config.States.ANSWERING_QUESTION.value
-    send_question(user)
-    with DataBase() as base:
         base.update_user(user)
+
+    send_question(message)
 
 
 @bot.message_handler(func=lambda message: get_user_state(message.chat.id) == config.States.ANSWERING_QUESTION.value)
@@ -60,9 +63,9 @@ def answer_question(message):
             return
         base.insert_answer(chat_id, form_id, question_id, text)
         user.current_question += 1
-    send_question(user)
-    with DataBase() as base:
         base.update_user(user)
+
+    send_question(message)
 
 
 @bot.message_handler(commands=['start'])
@@ -145,7 +148,7 @@ def form_description(message):
         base.update_user(user)
 
 
-@bot.message_handler(func=lambda message: message.text == 'Следующий вопрос' and get_user_state(message.chat.id) == config.States.MAKING_QUESTION.value)
+@bot.message_handler(func=lambda message: message.text == 'Следующий вопрос')
 def new_question(message):
     with DataBase() as base:
         chat_id = message.chat.id
@@ -159,7 +162,7 @@ def new_question(message):
         base.update_user(user)
 
 
-@bot.message_handler(func=lambda message: message.text == 'Закончить форму' and get_user_state(message.chat.id) == config.States.MAKING_QUESTION.value)
+@bot.message_handler(func=lambda message: message.text == 'Закончить форму')
 def end_form(message):
     with DataBase() as base:
         chat_id = message.chat.id
@@ -178,9 +181,10 @@ def end_form(message):
         user.current_form = None
         user.current_question = None
         base.update_user(user)
+        menu(message)
 
 @bot.message_handler(func=lambda message: get_user_state(message.chat.id) == config.States.MAKING_QUESTION.value, 
-    content_types=['text', 'photo', 'audio', 'sticker', 'document'])
+    content_types=['text', 'photo', 'audio', 'sticker', 'document', 'voice'])
 def add_message_to_question(message):
     with DataBase() as base:
         user = base.get_user(message.chat.id)
