@@ -5,23 +5,19 @@ from oauth2client.service_account import ServiceAccountCredentials
 CREDENTIALS_FILE = 'api_key.json'
 credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, ['https://www.googleapis.com/auth/spreadsheets',
                                                                                  'https://www.googleapis.com/auth/drive'])
-# Черновой вариант (как минимум работает только для 26 столбцов)
 class Spreadsheet:
 
     def __init__(self, spreadsheet_id, service):
         self.data = []
-        self.num = 1
         self.spreadsheet_id = spreadsheet_id
         self.service = service
 
-    def post_answer(self, answer):
-        answer = [str(x) for x in answer]
+    def post_answer(self, answers):
         self.data.append({
-          'range': f'A{self.num}:{chr(65 + len(answer) - 1)}{self.num}',
+          'range': 'A1',
           'majorDimension' : 'ROWS',
-          'values' : [answer],
+          'values' : answers,
         })
-        self.num += 1
 
     def post(self):
         return self.service.spreadsheets().values().batchUpdate(spreadsheetId=self.spreadsheet_id, body={
@@ -34,8 +30,6 @@ def post_in_sheets(answers, spreadsheet_id):
     httpAuth = credentials.authorize(httplib2.Http())
     service = apiclient.discovery.build('sheets', 'v4', http = httpAuth)
 
-
     ss = Spreadsheet(spreadsheet_id=spreadsheet_id, service=service)
-    for answer in answers:
-        ss.post_answer(answer)
+    ss.post_answer(answers)
     ss.post()

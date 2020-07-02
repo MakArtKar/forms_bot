@@ -17,8 +17,7 @@ def send_question(message):
         question_id = user.current_question
 
         form = base.get_form(form_id)
-        messages_id = base.get_messages_id_from_question(form_id, question_id)
-        if not messages_id:
+        if form.questions_number == user.current_question:
             user.current_form = None
             user.current_question = None
             user.state = config.States.DEFAULT.value
@@ -26,6 +25,7 @@ def send_question(message):
             base.update_user(user)
             menu(message)
         else:
+            messages_id = base.get_messages_id_from_question(form_id, question_id)
             for message_id in messages_id:
                 bot.forward_message(user.chat_id, form.creator_chat_id, message_id)
             base.update_user(user)
@@ -165,7 +165,7 @@ def end_form(message):
         bot.send_message(chat_id, f'Ссылка на ваш опрос {config.REF + user.current_form}')
 
         form = base.get_form(user.current_form)
-        form.question_number = user.current_question
+        form.questions_number = user.current_question + 1
         base.update_form(form)
 
         user.state = config.States.DEFAULT.value
@@ -186,16 +186,17 @@ def add_message_to_question(message):
 
 @bot.message_handler(commands=['import'])
 def import_to_google_sheets(message):
-  chat_id = message.chat.id
-  try:
-      form_id = str(message.text.split(' ')[1])
-      spreadsheet_id = str(message.text.split(' ')[2])
-  except:
-      bot.send_message(chat_id, 'TODO Wrong format')
-      return
-  answers = base.get_all_answers(form_id)
-  post_in_sheets(answers, spreadsheet_id)
-  bot.send_message(chat_id, 'TODO OK')
+    with DataBase() as base:
+        chat_id = message.chat.id
+        try:
+            form_id = str(message.text.split(' ')[1])
+            spreadsheet_id = str(message.text.split(' ')[2])
+        except:
+            bot.send_message(chat_id, 'TODO Wrong format')
+            return
+        answers = base.get_all_answers(form_id)
+        post_in_sheets(answers, spreadsheet_id)
+        bot.send_message(chat_id, 'TODO OK')
 
 
 def get_user_state(chat_id):
