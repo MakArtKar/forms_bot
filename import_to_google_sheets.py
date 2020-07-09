@@ -1,6 +1,7 @@
 import httplib2
 import apiclient.discovery
 from oauth2client.service_account import ServiceAccountCredentials
+from googleapiclient.errors import *
 
 CREDENTIALS_FILE = 'api_key.json'
 credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, ['https://www.googleapis.com/auth/spreadsheets',
@@ -20,10 +21,13 @@ class Spreadsheet:
         })
 
     def post(self):
-        return self.service.spreadsheets().values().batchUpdate(spreadsheetId=self.spreadsheet_id, body={
-            'valueInputOption' : 'USER_ENTERED',
-            'data' : self.data,
-        }).execute()
+        try:
+            return self.service.spreadsheets().values().batchUpdate(spreadsheetId=self.spreadsheet_id, body={
+                'valueInputOption' : 'USER_ENTERED',
+                'data' : self.data,
+            }).execute()
+        except HttpError as error:
+            raise error
 
 
 def post_in_sheets(answers, spreadsheet_id):
@@ -32,4 +36,7 @@ def post_in_sheets(answers, spreadsheet_id):
 
     ss = Spreadsheet(spreadsheet_id=spreadsheet_id, service=service)
     ss.post_answer(answers)
-    ss.post()
+    try:
+        ss.post()
+    except HttpError as error:
+        raise error

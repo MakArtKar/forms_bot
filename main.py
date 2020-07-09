@@ -2,6 +2,7 @@ import telebot
 from telebot import types
 from random import choice
 from string import ascii_letters
+from googleapiclient.errors import HttpError
 
 import config
 from db_worker import DataBase, User, Form
@@ -195,8 +196,17 @@ def import_to_google_sheets(message):
             bot.send_message(chat_id, 'TODO Wrong format')
             return
         answers = base.get_all_answers(form_id)
-        post_in_sheets(answers, spreadsheet_id)
-        bot.send_message(chat_id, 'TODO OK')
+        try:
+            post_in_sheets(answers, spreadsheet_id)
+        except HttpError as error:
+            if error._get_reason() == 'The caller does not have permission':
+                bot.send_message(chat_id, 'Предоставьте праава на редактирование по ссылке')
+            elif error._get_reason() == 'Requested entity was not found.':
+                bot.send_message(chat_id, 'Неправильный индетификатор таблицы')
+            else:
+            	bot.send_message(chat_id, 'Неопознанная ошибка')
+        else:
+            bot.send_message(chat_id, 'TODO OK')
 
 
 def get_user_state(chat_id):
@@ -208,6 +218,11 @@ def generate_random_string(len=config.FORM_ID_LEN):
     return ''.join(choice(ascii_letters) for i in range(len))
 
 
+def get_spreadsheet_id_from_ref(ref):
+	try:
+		return ref[ref.find('/d/'):].split('/')[2]
+	except:
+		return None
+
 if __name__ == '__main__':
     bot.infinity_polling()
- 
