@@ -89,21 +89,21 @@ def my_forms(message):
         forms_id = base.get_user_forms(chat_id)
         for form_id in forms_id:
             form = base.get_form(form_id)
-            button = types.InlineKeyboardButton(text=form.name, callback_data=f'my_form: {form.form_id}')
+            button = types.InlineKeyboardButton(text=form.name, callback_data=f'my_form:{form.form_id}')
             keyboard.add(button)
 
     bot.send_message(chat_id, 'Ваши формы:', reply_markup=keyboard)
 
 
-@bot.callback_query_handler(func=lambda call: call.data[:len('my_form: ')] == 'my_form: ' and 
+@bot.callback_query_handler(func=lambda call: call.data.split(':')[0] == 'my_form' and 
     get_user_state(call.message.chat.id) == config.States.DEFAULT.value)
 def request_form(call):
-    form_id = call.data[len('my_form: '):]
+    form_id = call.data.split(':')[1]
     chat_id = call.message.chat.id
 
     keyboard = types.InlineKeyboardMarkup()
     button_import = types.InlineKeyboardButton(text='Импортировать в гугл таблицу', callback_data='import_to_google_sheets')
-    button_erase = types.InlineKeyboardButton(text='Удалить форму', callback_data=f'erase_form: {form_id}')
+    button_erase = types.InlineKeyboardButton(text='Удалить форму', callback_data=f'erase_form')
     keyboard.add(button_import)
     keyboard.add(button_erase)
 
