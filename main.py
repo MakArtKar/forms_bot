@@ -75,10 +75,78 @@ def menu(message):
     keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     button_my_forms = types.KeyboardButton(text='Создать новую форму')
     button_new_form = types.KeyboardButton(text='Мои формы')
-    button_answer_form = types.KeyboardButton(text='Пройти форму')
-    keyboard.add(button_my_forms, button_new_form, button_answer_form)
+    keyboard.add(button_my_forms, button_new_form)
     
     bot.send_message(chat_id, text='Выберите вариант', reply_markup=keyboard)
+
+
+@bot.message_handler(func=lambda message: message.text == 'Мои формы' and get_user_state(message.chat.id) == config.States.DEFAULT.value)
+def my_forms(message):
+    chat_id = message.chat.id
+    
+    keyboard = types.InlineKeyboardMarkup()
+    with DataBase() as base:
+        forms_id = base.get_user_forms(chat_id)
+        for form_id in forms_id:
+            form = base.get_form(form_id)
+            button = types.InlineKeyboardButton(text=form.name, callback_data=f'my_form:{form.form_id}')
+            keyboard.add(button)
+
+    bot.send_message(chat_id, 'Ваши формы:', reply_markup=keyboard)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split(':')[0] == 'my_form' and 
+    get_user_state(call.message.chat.id) == config.States.DEFAULT.value)
+def request_form(call):
+    form_id = call.data.split(':')[1]
+    chat_id = call.message.chat.id
+
+    keyboard = types.InlineKeyboardMarkup()
+    button_import = types.InlineKeyboardButton(text='Импортировать в гугл таблицу', callback_data='import_to_google_sheets')
+    button_erase = types.InlineKeyboardButton(text='Удалить форму', callback_data=f'erase_form')
+    keyboard.add(button_import)
+    keyboard.add(button_erase)
+
+    with DataBase() as base:
+        user = base.get_user(chat_id)
+        user.current_form = form_id
+        base.update_user(user)
+
+        form = base.get_form(form_id)
+        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, 
+            text=f'''Название формы: {form.name}
+Описание формы: {form.description}
+Количество проголосовавших: {len(base.get_all_answers(form_id))}''', reply_markup=keyboard)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'import_to_google_sheets' and 
+    get_user_state(call.message.chat.id) == config.States.DEFAULT.value)
+def import_form(call):
+    chat_id = call.message.chat.id
+
+    with DataBase() as base:
+        user = base.get_user(chat_id)
+        user.state = config.States.IMPORT_TO_GOOGLE_SHEETS.value
+        base.update_user(user)
+
+        bot.send_message(chat_id, 'Введите ссылку на вашу гугл таблицу\nУбедитесь, что вы предоставили доступ по ссылке')
+
+
+@bot.message_handler(func=lambda message: get_user_state(message.chat.id) == config.States.IMPORT_TO_GOOGLE_SHEETS.value)
+def import_to_google_sheets(message):
+    chat_id = message.chat.id
+    spreadsheet_id = message.text
+
+    with DataBase() as base:
+        user = base.get_user(chat_id)
+        form_id = user.current_form
+        user.state = config.States.DEFAULT.value
+        base.update_user(user)
+
+        answers = base.get_all_answers(form_id)
+        post_in_sheets(answers, spreadsheet_id)
+        bot.send_message(chat_id, 'TODO OK')
+
 
 
 @bot.message_handler(func=lambda message: message.text == 'Создать новую форму' and get_user_state(message.chat.id) == config.States.DEFAULT.value)
@@ -182,21 +250,6 @@ def add_message_to_question(message):
         form_id = user.current_form
         question_id = user.current_question
         base.insert_message_to_question(form_id, question_id, message.message_id)
-
-
-@bot.message_handler(commands=['import'])
-def import_to_google_sheets(message):
-    with DataBase() as base:
-        chat_id = message.chat.id
-        try:
-            form_id = str(message.text.split(' ')[1])
-            spreadsheet_id = str(message.text.split(' ')[2])
-        except:
-            bot.send_message(chat_id, 'TODO Wrong format')
-            return
-        answers = base.get_all_answers(form_id)
-        post_in_sheets(answers, spreadsheet_id)
-        bot.send_message(chat_id, 'TODO OK')
 
 
 def get_user_state(chat_id):

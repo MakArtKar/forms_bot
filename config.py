@@ -13,3 +13,5 @@ class States(enum.Enum):
     FORM_NAME = 2
     FORM_DESCRIPTION = 3
     ANSWERING_QUESTION = 4
+    IMPORT_TO_GOOGLE_SHEETS = 5
+
