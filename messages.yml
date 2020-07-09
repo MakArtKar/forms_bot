@@ -1,0 +1,6 @@
+my_forms: |
+  Название формы: {name}.
+  Описание формы: {description}
+  Количество проголосовавших: {completed_number}
+
+completed_form: Благодарим вас, опрос завершен.
