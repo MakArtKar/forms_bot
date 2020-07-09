@@ -7,9 +7,10 @@ from googleapiclient.errors import HttpError
 import config
 from db_worker import DataBase, User, Form
 from import_to_google_sheets import post_in_sheets
+from yaml_util import load_yml_file
 
 bot = telebot.TeleBot(config.BOT_TOKEN)
-
+messages_base = load_yml_file("messages.yml")
 
 def send_question(message):
     with DataBase() as base:
@@ -22,7 +23,7 @@ def send_question(message):
             user.current_form = None
             user.current_question = None
             user.state = config.States.DEFAULT.value
-            bot.send_message(user.chat_id, 'TODO спасибо, опрос закончен')
+            bot.send_message(user.chat_id, messages_base["completed_form"])
             base.update_user(user)
             menu(message)
         else:
@@ -114,10 +115,13 @@ def request_form(call):
         base.update_user(user)
 
         form = base.get_form(form_id)
-        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, 
-            text=f'''Название формы: {form.name}
-Описание формы: {form.description}
-Количество проголосовавших: {len(base.get_all_answers(form_id))}''', reply_markup=keyboard)
+
+        completed_number = len(base.get_all_answers(form_id))
+        bot.edit_message_text(
+            chat_id=chat_id,
+            message_id=call.message.message_id,
+            text=messages_base["my_forms"].format(name=form.name, description=form.description, completed_number=completed_number) 
+        )
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'import_to_google_sheets' and 
