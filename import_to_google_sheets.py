@@ -30,12 +30,19 @@ class Spreadsheet:
             raise error
 
 
+def map_to_list(answers):
+    res = []
+    for chat_id in answers:
+        res.append(answers[chat_id])
+    return res
+
+
 def post_in_sheets(answers, spreadsheet_id):
     httpAuth = credentials.authorize(httplib2.Http())
     service = apiclient.discovery.build('sheets', 'v4', http = httpAuth)
 
     ss = Spreadsheet(spreadsheet_id=spreadsheet_id, service=service)
-    ss.post_answer(answers)
+    ss.post_answer(map_to_list(answers))
     try:
         ss.post()
     except HttpError as error:
