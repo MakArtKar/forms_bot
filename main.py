@@ -74,17 +74,17 @@ def answer_question(message):
 def menu(message):
     chat_id = message.chat.id
 
-    keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    button_my_forms = types.KeyboardButton(text='Создать новую форму')
-    button_new_form = types.KeyboardButton(text='Мои формы')
-    keyboard.add(button_my_forms, button_new_form)
+    keyboard = types.InlineKeyboardMarkup()
+    button_new_forms = types.InlineKeyboardButton(text='Создать новую форму', callback_data='new_form')
+    button_my_form = types.InlineKeyboardButton(text='Мои формы', callback_data='my_forms')
+    keyboard.add(button_new_forms, button_my_form)
     
-    bot.send_message(chat_id, text='Выберите вариант', reply_markup=keyboard)
+    bot.send_message(chat_id=chat_id, text='Выберите вариант', reply_markup=keyboard)
 
 
-@bot.message_handler(func=lambda message: message.text == 'Мои формы' and get_user_state(message.chat.id) == config.States.DEFAULT.value)
-def my_forms(message):
-    chat_id = message.chat.id
+@bot.callback_query_handler(func=lambda call: call.data == 'my_forms' and get_user_state(call.message.chat.id) == config.States.DEFAULT.value)
+def my_forms(call):
+    chat_id = call.message.chat.id
     
     keyboard = types.InlineKeyboardMarkup()
     with DataBase() as base:
@@ -93,8 +93,15 @@ def my_forms(message):
             form = base.get_form(form_id)
             button = types.InlineKeyboardButton(text=form.name, callback_data=f'my_form:{form.form_id}')
             keyboard.add(button)
+    button = types.InlineKeyboardButton(text='Назад', callback_data='back_from_forms_list')
+    keyboard.add(button)
 
-    bot.send_message(chat_id, 'Ваши формы:', reply_markup=keyboard)
+    bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text='Ваши формы:', reply_markup=keyboard)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'back_from_forms_list' and get_user_state(call.message.chat.id) == config.States.DEFAULT.value)
+def back_from_forms_list(call):
+    menu(call.message)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.split(':')[0] == 'my_form' and 
@@ -105,9 +112,11 @@ def request_form(call):
 
     keyboard = types.InlineKeyboardMarkup()
     button_import = types.InlineKeyboardButton(text='Импортировать в гугл таблицу', callback_data='import_to_google_sheets')
-    button_erase = types.InlineKeyboardButton(text='Удалить форму', callback_data=f'erase_form')
+    button_erase = types.InlineKeyboardButton(text='Удалить форму', callback_data='erase_form')
+    button_back = types.InlineKeyboardButton(text='Назад', callback_data='back_to_forms_list')
     keyboard.add(button_import)
     keyboard.add(button_erase)
+    keyboard.add(button_back)
 
     with DataBase() as base:
         user = base.get_user(chat_id)
@@ -115,13 +124,64 @@ def request_form(call):
         base.update_user(user)
 
         form = base.get_form(form_id)
-
         completed_number = len(base.get_all_answers(form_id))
         bot.edit_message_text(
             chat_id=chat_id,
             message_id=call.message.message_id,
-            text=messages_base["my_forms"].format(name=form.name, description=form.description, completed_number=completed_number) 
+            text=messages_base["my_forms"].format(name=form.name, description=form.description, completed_number=completed_number),
+            reply_markup=keyboard
         )
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'back_to_forms_list')
+def back_to_forms_list(call):
+    chat_id = call.message.chat.id
+
+    with DataBase() as base:
+        user = base.get_user(chat_id)
+        user.current_form = None
+        base.update_user(user)
+
+    my_forms(call)
+
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'erase_form' and
+    get_user_state(call.message.chat.id) == config.States.DEFAULT.value)
+def erase_form(call):
+    chat_id = call.message.chat.id
+
+    keyboard = types.InlineKeyboardMarkup()
+    button_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
+    button_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
+    keyboard.add(button_yes, button_no)
+
+    bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text='Вы уверены, что хотите удалить форму?', reply_markup=keyboard)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'yes' and
+    get_user_state(call.message.chat.id) == config.States.DEFAULT.value)
+def agree_to_erase_form(call):
+    chat_id = call.message.chat.id
+
+    with DataBase() as base:
+        user = base.get_user(chat_id)
+        form_id = user.current_form
+        base.delete_form(form_id)
+        user.current_form = None
+        base.update_user(user)
+
+    menu(call.message)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'no' and
+    get_user_state(call.message.chat.id) == config.States.DEFAULT.value)
+def disagree_to_erase_form(call):
+    with DataBase() as base:
+        user = base.get_user(call.message.chat.id)
+        form_id = user.current_form
+    call.data = f'my_form:{form_id}'
+    request_form(call)
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'import_to_google_sheets' and 
@@ -134,7 +194,25 @@ def import_form(call):
         user.state = config.States.IMPORT_TO_GOOGLE_SHEETS.value
         base.update_user(user)
 
-        bot.send_message(chat_id, 'Введите ссылку на вашу гугл таблицу\nУбедитесь, что вы предоставили доступ по ссылке')
+        keyboard = types.InlineKeyboardMarkup()
+        button = types.InlineKeyboardButton(text='Назад', callback_data='back_to_form')
+        keyboard.add(button)
+
+        bot.send_message(chat_id, 'Введите ссылку на вашу гугл таблицу\nУбедитесь, что вы предоставили доступ по ссылке', reply_markup=keyboard)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'back_to_form' and get_user_state(call.message.chat.id) == config.States.IMPORT_TO_GOOGLE_SHEETS.value)
+def back_to_form(call):
+    chat_id = call.message.chat.id
+
+    with DataBase() as base:
+        user = base.get_user(chat_id)
+        form_id = user.current_form
+        user.state = config.States.DEFAULT.value
+        base.update_user(user)
+
+    call.data = f'my_form:{form_id}'
+    request_form(call)
 
 
 @bot.message_handler(func=lambda message: get_user_state(message.chat.id) == config.States.IMPORT_TO_GOOGLE_SHEETS.value)
@@ -154,16 +232,18 @@ def import_to_google_sheets(message):
         post_in_sheets(answers, spreadsheet_id)
         bot.send_message(chat_id, 'TODO OK')
 
+    my_forms(message)
 
 
-@bot.message_handler(func=lambda message: message.text == 'Создать новую форму' and get_user_state(message.chat.id) == config.States.DEFAULT.value)
-def make_form(message):
+@bot.callback_query_handler(func=lambda call: call.data == 'new_form' and get_user_state(call.message.chat.id) == config.States.DEFAULT.value)
+def make_form(call):
+    chat_id = call.message.chat.id
+
     keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     button_default_name = types.KeyboardButton(text='Без названия')
     keyboard.add(button_default_name)
 
     with DataBase() as base:
-        chat_id = message.chat.id
         user = base.get_user(chat_id)
 
         bot.send_message(chat_id, 'Введите название формы', reply_markup=keyboard)
