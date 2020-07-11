@@ -152,14 +152,14 @@ def erase_form(call):
     chat_id = call.message.chat.id
 
     keyboard = types.InlineKeyboardMarkup()
-    button_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
-    button_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
+    button_yes = types.InlineKeyboardButton(text='Да', callback_data='agree_to_erase_form')
+    button_no = types.InlineKeyboardButton(text='Нет', callback_data='disagree_to_erase_form')
     keyboard.add(button_yes, button_no)
 
     bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text='Вы уверены, что хотите удалить форму?', reply_markup=keyboard)
 
 
-@bot.callback_query_handler(func=lambda call: call.data == 'yes' and
+@bot.callback_query_handler(func=lambda call: call.data == 'agree_to_erase_form' and
     get_user_state(call.message.chat.id) == config.States.DEFAULT.value)
 def agree_to_erase_form(call):
     chat_id = call.message.chat.id
@@ -174,7 +174,7 @@ def agree_to_erase_form(call):
     menu(call.message)
 
 
-@bot.callback_query_handler(func=lambda call: call.data == 'no' and
+@bot.callback_query_handler(func=lambda call: call.data == 'disagree_to_erase_form' and
     get_user_state(call.message.chat.id) == config.States.DEFAULT.value)
 def disagree_to_erase_form(call):
     with DataBase() as base:
@@ -225,7 +225,7 @@ def import_to_google_sheets(message):
             user = base.get_user(chat_id)
             user.state = config.States.DEFAULT.value
             base.update_user(user)
-        
+
         menu(message)
         return
 
