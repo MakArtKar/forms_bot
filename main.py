@@ -219,20 +219,35 @@ def back_to_form(call):
 def import_to_google_sheets(message):
     chat_id = message.chat.id
     spreadsheet_id = get_spreadsheet_id_from_ref(message.text)
-    if (spreadsheet_id == None):
+    if (spreadsheet_id is None):
         bot.send_message(chat_id, 'TODO некорректная ссылка')
+        with DataBase() as base:
+            user = base.get_user(chat_id)
+            user.state = config.States.DEFAULT.value
+            base.update_user(user)
+        
+        menu(message)
+        return
 
     with DataBase() as base:
         user = base.get_user(chat_id)
         form_id = user.current_form
-        user.state = config.States.DEFAULT.value
-        base.update_user(user)
 
         answers = base.get_all_answers(form_id)
-        post_in_sheets(answers, spreadsheet_id)
-        bot.send_message(chat_id, 'TODO OK')
-
-    my_forms(message)
+        try:
+            post_in_sheets(answers, spreadsheet_id)
+        except HttpError as error:
+            if (error._get_reason() == 'Requested entity was not found.'):
+                bot.send_message(chat_id, 'TODO некорректная ссылка')
+            elif (error._get_reason() == 'The caller does not have permission'):
+                bot.send_message(chat_id, 'Проверьте, предоставили ли Вы доступ')
+            else:
+                bot.send_message(chat_id, 'Неизвестная ошибка')
+        else:
+            bot.send_message(chat_id, 'TODO OK')
+            user.state = config.States.DEFAULT.value
+            base.update_user(user)
+            menu(message)
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'new_form' and get_user_state(call.message.chat.id) == config.States.DEFAULT.value)
