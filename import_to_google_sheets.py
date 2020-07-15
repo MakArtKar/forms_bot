@@ -1,6 +1,7 @@
 import httplib2
 import apiclient.discovery
 from oauth2client.service_account import ServiceAccountCredentials
+from googleapiclient.errors import *
 
 CREDENTIALS_FILE = 'api_key.json'
 credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, ['https://www.googleapis.com/auth/spreadsheets',
