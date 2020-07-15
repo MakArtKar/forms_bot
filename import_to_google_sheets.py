@@ -21,13 +21,10 @@ class Spreadsheet:
         })
 
     def post(self):
-        try:
-            return self.service.spreadsheets().values().batchUpdate(spreadsheetId=self.spreadsheet_id, body={
-                'valueInputOption' : 'USER_ENTERED',
-                'data' : self.data,
-            }).execute()
-        except HttpError as error:
-            raise error
+        return self.service.spreadsheets().values().batchUpdate(spreadsheetId=self.spreadsheet_id, body={
+            'valueInputOption' : 'USER_ENTERED',
+            'data' : self.data,
+        }).execute()
 
 
 def map_to_list(answers):
@@ -43,7 +40,4 @@ def post_in_sheets(answers, spreadsheet_id):
 
     ss = Spreadsheet(spreadsheet_id=spreadsheet_id, service=service)
     ss.post_answer(map_to_list(answers))
-    try:
-        ss.post()
-    except HttpError as error:
-        raise error
+    ss.post()
