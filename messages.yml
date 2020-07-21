@@ -1,6 +1,66 @@
 my_forms: |
-  Название формы: {name}.
+  Название формы: {name}
   Описание формы: {description}
   Количество проголосовавших: {completed_number}
 
-completed_form: Благодарим вас, опрос завершен.
+completed_form: Благодарим вас, прохождение формы завершено.
+
+start_complete_new_form_with_nondefault_state: Прежде чем переходить к прохождению новой формы, завершите предыдущее действие.
+
+start_complete_new_form_with_answering_state: Прежде чем переходить к прохождению новой формы, закончите прохождение предыдущей.
+
+start_complete_new_form_with_creating_state: Прежде чем переходить к прохождению новой формы, закончите создание формы.
+
+wrong_answer_format: Неправильный формат ответа. Введите текст.
+
+button_new_form: Создать новую форму
+
+button_my_forms: Мои формы
+
+choose_button: Выберите действие.
+
+button_back: Назад
+
+forms_list_header: Список ваших форм.
+
+button_import_to_google: Импортировать в гугл таблицу
+
+button_delete_form: Удалить форму
+
+button_yes: Да
+
+button_no: Нет
+
+are_you_sure_to_delete_form: Вы уверены, что хотите удалить форму?
+
+type_google_sheet_link: |
+  Введите ссылку на гугл таблицу.
+  Убедитесь, что вы предоставили доступ по ссылке.
+
+google_error_incorrect_link: Некорректная ссылка. Пожалуйста, укажите ссылку на вашу гугл таблицу.
+
+google_error_permission: Вы не предоставили доступ для редактирования по ссылке.
+
+google_error_unknown: Произошла ошибка при попытке подключиться к таблице.
+
+google_import_ok: Результаты прохождения формы успешно импортированы в гугл таблицу.
+
+type_form_name: Введите название формы.
+
+type_form_description: Введите описание формы.
+
+button_next_question: Следующий вопрос
+
+button_end_form: Закончить форму
+
+row_width_menu_creating_form: 2
+
+type_first_question: |
+  Введите первый вопрос. Вы можете сделать это несколькими сообщениями.
+  Для перехода к следующему вопросу и завершения формы пользуйтесь кнопками.
+
+type_another_question: Введите сообщения для нового вопроса.
+
+created_form: |
+  Форма успешно создана.
+  Ссылка для прохождения {link}

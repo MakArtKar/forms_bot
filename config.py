@@ -4,7 +4,7 @@ import os
 BOT_TOKEN = os.getenv("FORMS_BOT_TOKEN")
 DB_LOCATION = os.getenv("FORMS_BOT_DATABASE")
 FORM_ID_LEN = 12
-REF = 'https://t.me/google_forms_bot?start='
+REF = os.getenv("FORMS_REF")
 
 
 class States(enum.Enum):
