@@ -1,4 +1,5 @@
 import logging
+import argparse
 import telebot
 from telebot import types
 from random import choice
@@ -11,11 +12,27 @@ from db_worker import DataBase, User, Form
 from import_to_google_sheets import post_in_sheets
 from messages import Messages
 
-bot = telebot.TeleBot(config.BOT_TOKEN)
-messages = Messages("messages.yml")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Telergram bot for creating and passing forms")
+    parser.add_argument("token", help="telegram bot token", type=str)
+    parser.add_argument("database", help="path to database", type=str)
+    parser.add_argument("link_start", help="link to bot ends with ?start=", type=str)
+
+    args = parser.parse_args()
+
+    DB_LOCATION = args.database
+    BOT_LINK_START = args.link_start
+    
+    logging.basicConfig(level=logging.INFO)
+
+    messages = Messages("messages.yml")
+
+    bot = telebot.TeleBot(token=args.token)
+    logging.info("Connected to telegram bot")
 
 def send_question(message):
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         user = base.get_user(message.chat.id)
         form_id = user.current_form
         question_id = user.current_question
@@ -38,7 +55,7 @@ def send_question(message):
 @bot.message_handler(func=lambda message: message.text and len(message.text.split(" ")) == 2 and message.text.split(" ")[0] == "/start")
 def answer_form(message):
     chat_id = message.chat.id
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         user = base.get_user(chat_id)
         if user.state != States.DEFAULT.value:
             msg = messages.start_complete_new_form_with_nondefault_state
@@ -61,7 +78,7 @@ def answer_form(message):
 @bot.message_handler(func=lambda message: get_user_state(message.chat.id) == States.ANSWERING_QUESTION.value)
 def answer_question(message):
     chat_id = message.chat.id
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         user = base.get_user(message.chat.id)
         form_id = user.current_form
         question_id = user.current_question
@@ -94,7 +111,7 @@ def my_forms(call):
     chat_id = call.message.chat.id
     
     keyboard = types.InlineKeyboardMarkup()
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         forms_id = base.get_user_forms(chat_id)
         for form_id in forms_id:
             form = base.get_form(form_id)
@@ -125,7 +142,7 @@ def request_form(call):
     keyboard.add(button_erase)
     keyboard.add(button_back)
 
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         user = base.get_user(chat_id)
         user.current_form = form_id
         base.update_user(user)
@@ -144,7 +161,7 @@ def request_form(call):
 def back_to_forms_list(call):
     chat_id = call.message.chat.id
 
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         user = base.get_user(chat_id)
         user.current_form = None
         base.update_user(user)
@@ -171,7 +188,7 @@ def erase_form(call):
 def agree_to_erase_form(call):
     chat_id = call.message.chat.id
 
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         user = base.get_user(chat_id)
         form_id = user.current_form
         base.delete_form(form_id)
@@ -184,7 +201,7 @@ def agree_to_erase_form(call):
 @bot.callback_query_handler(func=lambda call: call.data == "disagree_to_erase_form" and
     get_user_state(call.message.chat.id) == States.DEFAULT.value)
 def disagree_to_erase_form(call):
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         user = base.get_user(call.message.chat.id)
         form_id = user.current_form
     call.data = f"my_form:{form_id}"
@@ -196,7 +213,7 @@ def disagree_to_erase_form(call):
 def import_form(call):
     chat_id = call.message.chat.id
 
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         user = base.get_user(chat_id)
         user.state = States.IMPORT_TO_GOOGLE_SHEETS.value
         base.update_user(user)
@@ -212,7 +229,7 @@ def import_form(call):
 def back_to_form(call):
     chat_id = call.message.chat.id
 
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         user = base.get_user(chat_id)
         form_id = user.current_form
         user.state = States.DEFAULT.value
@@ -228,7 +245,7 @@ def import_to_google_sheets(message):
     spreadsheet_id = get_spreadsheet_id_from_ref(message.text)
     if (spreadsheet_id is None):
         bot.send_message(chat_id, messages.google_error_incorrect_link)
-        with DataBase() as base:
+        with DataBase(DB_LOCATION) as base:
             user = base.get_user(chat_id)
             user.state = States.DEFAULT.value
             base.update_user(user)
@@ -236,7 +253,7 @@ def import_to_google_sheets(message):
         menu(message)
         return
 
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         user = base.get_user(chat_id)
         form_id = user.current_form
 
@@ -263,7 +280,7 @@ def import_to_google_sheets(message):
 def make_form(call):
     chat_id = call.message.chat.id
 
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         user = base.get_user(chat_id)
 
         bot.send_message(chat_id, messages.type_form_name)
@@ -275,7 +292,7 @@ def make_form(call):
 @bot.message_handler(func=lambda message: get_user_state(message.chat.id) == States.FORM_NAME.value)
 def form_name(message):
 
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         chat_id = message.chat.id
         user = base.get_user(chat_id)
 
@@ -302,7 +319,7 @@ def form_description(message):
     button_end_form = types.KeyboardButton(text=messages.button_end_form)
     keyboard.add(button_new_question, button_end_form)
 
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         chat_id = message.chat.id
         user = base.get_user(chat_id)
 
@@ -319,7 +336,7 @@ def form_description(message):
 
 @bot.message_handler(func=lambda message: message.text == messages.button_next_question and get_user_state(message.chat.id) == States.MAKING_QUESTION.value)
 def new_question(message):
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         chat_id = message.chat.id
         bot.send_message(chat_id, messages.type_another_question)
         user = base.get_user(chat_id)
@@ -330,10 +347,10 @@ def new_question(message):
 
 @bot.message_handler(func=lambda message: message.text == messages.button_end_form and get_user_state(message.chat.id) == States.MAKING_QUESTION.value)
 def end_form(message):
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         chat_id = message.chat.id
         user = base.get_user(chat_id)
-        link = config.REF + user.current_form
+        link = BOT_LINK_START + user.current_form
 
         bot.send_message(chat_id, messages.created_form.format(link=link))
 
@@ -350,7 +367,7 @@ def end_form(message):
 @bot.message_handler(func=lambda message: get_user_state(message.chat.id) == States.MAKING_QUESTION.value, 
     content_types=["text", "photo", "audio", "sticker", "document", "voice"])
 def add_message_to_question(message):
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         user = base.get_user(message.chat.id)
         form_id = user.current_form
         question_id = user.current_question
@@ -358,7 +375,7 @@ def add_message_to_question(message):
 
 
 def get_user_state(chat_id):
-    with DataBase() as base:
+    with DataBase(DB_LOCATION) as base:
         return base.get_user(chat_id).state
 
 
