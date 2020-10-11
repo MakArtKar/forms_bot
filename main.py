@@ -1,3 +1,4 @@
+import logging
 import telebot
 from telebot import types
 from random import choice
@@ -372,4 +373,5 @@ def get_spreadsheet_id_from_ref(ref):
 		return None
 
 if __name__ == "__main__":
-    bot.infinity_polling()
+    logging.info("Start polling")
+    bot.polling(none_stop=False)
